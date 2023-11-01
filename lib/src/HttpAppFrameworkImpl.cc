@@ -178,7 +178,7 @@ static void godaemon()
 
     return;
 }
-
+// 优雅关闭或清理资源
 static void TERMFunction(int sig)
 {
     if (sig == SIGTERM)

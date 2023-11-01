@@ -1,5 +1,7 @@
+# 规定了cmake最低版本为3.5
 cmake_minimum_required(VERSION 3.5)
 
+# 定义项目名称为drogon
 project(drogon)
 
 message(STATUS "compiler: " ${CMAKE_CXX_COMPILER_ID})
@@ -12,6 +14,7 @@ else ()
     set(BUILD_PROGRAMS OFF)
 endif ()
 
+#option() 是一个函数，用于定义可以由用户在配置构建时切换的构建选项
 option(BUILD_CTL "Build drogon_ctl" ${BUILD_PROGRAMS})
 option(BUILD_EXAMPLES "Build examples" ${BUILD_PROGRAMS})
 option(BUILD_ORM "Build orm" ON)
@@ -20,6 +23,16 @@ option(BUILD_SHARED_LIBS "Build drogon as a shared lib" OFF)
 option(BUILD_DOC "Build Doxygen documentation" OFF)
 option(BUILD_BROTLI "Build Brotli" ON)
 
+#CMAKE_DEPENDENT_OPTION" 是 CMake 中的一种宏（macro）或功能，用于创建一个选项（option），该选项的启用或禁用状态依赖于另一个选项的状态
+#CMAKE_DEPENDENT_OPTION(
+#<option_name>      # 主选项的名称
+#    "Description of the option"  # 选项的描述
+#    <default_value>    # 主选项的默认值
+#    <dependency_option> # 依赖选项的名称
+#    <dependency_value>  # 依赖选项为真时主选项的值
+#    [UNIQUE]
+#  )
+#  
 include(CMakeDependentOption)
 CMAKE_DEPENDENT_OPTION(BUILD_POSTGRESQL "Build with postgresql support" ON "BUILD_ORM" OFF)
 CMAKE_DEPENDENT_OPTION(LIBPQ_BATCH_MODE "Use batch mode for libpq" ON "BUILD_POSTGRESQL" OFF)
@@ -27,6 +40,7 @@ CMAKE_DEPENDENT_OPTION(BUILD_MYSQL "Build with mysql support" ON "BUILD_ORM" OFF
 CMAKE_DEPENDENT_OPTION(BUILD_SQLITE "Build with sqlite3 support" ON "BUILD_ORM" OFF)
 CMAKE_DEPENDENT_OPTION(BUILD_REDIS "Build with redis support" ON "BUILD_ORM" OFF)
 
+#设置drgon的当前版本
 set(DROGON_MAJOR_VERSION 1)
 set(DROGON_MINOR_VERSION 8)
 set(DROGON_PATCH_VERSION 0)
@@ -51,18 +65,24 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
 endif ()
 
+#添加一个名称为项目名字的库的构建目标
 add_library(${PROJECT_NAME})
 if (BUILD_SHARED_LIBS)
     find_package(Threads)
     # set(BUILD_EXAMPLES FALSE)
+    #这段 CMake 代码是用于在列表 CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES 中查找特定元素 "${CMAKE_INSTALL_PREFIX}/${INSTALL_LIB_DIR}" 的索引，
+    #并将结果存储在变量 isSystemDir 中
     list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES
         "${CMAKE_INSTALL_PREFIX}/${INSTALL_LIB_DIR}" isSystemDir)
     if ("${isSystemDir}" STREQUAL "-1")
         set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${INSTALL_LIB_DIR}")
     endif ("${isSystemDir}" STREQUAL "-1")
+    #set_target_properties 是 CMake 中用于设置目标属性的命令。
+    #在 CMake 中，一个目标可以是一个可执行文件、库、自定义目标等，该命令允许你配置和修改目标的各种属性，以控制其行为和构建过程。
     set_target_properties(${PROJECT_NAME} PROPERTIES
         VERSION ${DROGON_VERSION}
         SOVERSION ${DROGON_MAJOR_VERSION})
+    #链接目标和库
     target_link_libraries(${PROJECT_NAME} PUBLIC Threads::Threads)
     if (WIN32)
         target_link_libraries(${PROJECT_NAME} PUBLIC Rpcrt4 ws2_32 crypt32 Advapi32)
@@ -100,6 +120,7 @@ else ()
     set(DROGON_CXX_STANDARD 14)
 endif ()
 
+#设置目标的头文件搜索路径
 target_include_directories(
     ${PROJECT_NAME}
     PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib/inc>
@@ -116,6 +137,7 @@ if (WIN32)
         PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third_party/mman-win32>)
 endif (WIN32)
 
+#添加一个子目录的构建
 add_subdirectory(trantor)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC trantor)
@@ -196,7 +218,7 @@ else()
     endif()
 endif()
 
-# jsoncpp
+# jsoncpp 查找并加载改外部软件包
 find_package(Jsoncpp REQUIRED)
 target_link_libraries(${PROJECT_NAME} PUBLIC Jsoncpp_lib)
 list(APPEND INCLUDE_DIRS_FOR_DYNAMIC_VIEW ${JSONCPP_INCLUDE_DIRS})
@@ -646,7 +668,7 @@ if (BUILD_TESTING)
 endif (BUILD_TESTING)
 
 # Installation
-
+#安装构建目标到指定位置
 install(TARGETS ${PROJECT_NAME}
     EXPORT DrogonTargets
     RUNTIME DESTINATION "${INSTALL_BIN_DIR}" COMPONENT bin
@@ -701,6 +723,8 @@ set(DROGON_PLUGIN_HEADERS
 install(FILES ${DROGON_PLUGIN_HEADERS}
     DESTINATION ${INSTALL_INCLUDE_DIR}/drogon/plugins)
 
+#target_sources 是 CMake 中用于将源文件与目标关联的命令。
+#它用于将源文件添加到指定的目标（可执行文件、库、自定义目标等），以便这些源文件在构建目标时被编译并链接到目标中。
 target_sources(${PROJECT_NAME} PRIVATE
                ${DROGON_SOURCES}
                ${private_headers}
@@ -710,6 +734,8 @@ target_sources(${PROJECT_NAME} PRIVATE
                ${DROGON_PLUGIN_HEADERS}
                ${NOSQL_HEADERS})
 
+#source_group 是 CMake 中用于组织项目源文件（或其他资源文件）在IDE中的显示方式的命令。
+#它通常用于分组源文件以改善项目在集成开发环境（IDE）中的可读性，特别是在大型项目中
 source_group("Public API"
     FILES
     ${DROGON_HEADERS}
